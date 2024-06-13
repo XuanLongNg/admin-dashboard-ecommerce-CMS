@@ -1,6 +1,6 @@
 export enum ESort {
-    DESC = 'Giảm dần',
-    ACS = 'Tăng dần'
+    ASC = 'ASC',
+    DESC = 'DESC',
 }
 
-export const SortOptions = [ESort.ACS, ESort.DESC];
+export const SortOptions = [ESort.ASC, ESort.DESC];

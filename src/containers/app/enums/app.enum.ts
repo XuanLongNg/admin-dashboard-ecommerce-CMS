@@ -1,8 +1,8 @@
 enum EFilterOption {
-    DEFAULT = 'Mặc định',
-    DAILY = 'Ngày',
-    MONTHLY = 'Tháng',
-    YEARLY = 'Năm'
+    DEFAULT = 'default',
+    DAILY = 'daily',
+    MONTHLY = 'monthly',
+    YEARLY = 'yearly',
 }
 
 const filterOptions: EFilterOption[] = [EFilterOption.DEFAULT, EFilterOption.DAILY, EFilterOption.MONTHLY, EFilterOption.YEARLY]
@@ -27,11 +27,12 @@ enum EStatisticalOption {
 }
 
 enum EProductField {
-    NAME = 'Tên',
-    PRICE = 'Giá cả',
-    QUANTITY = 'Số lượng nhập',
-    VIEWS = 'Số lượt xem'
+    NAME = 'name',
+    PRICE = 'price',
+    QUANTITY = 'quantity',
+    VIEWS = 'views',
 }
+
 
 const productOptions = [
     EProductField.NAME,
@@ -41,16 +42,16 @@ const productOptions = [
 ]
 
 enum ERatingField {
-    NAME = 'Tên',
-    PRICE = 'Giá cả',
-    NOR = 'Số lượng đánh giá',
-    AVG_RARING = 'Điểm đánh giá trung bình'
+    NAME = 'name',
+    PRICE = 'price',
+    COMMENT_COUNT = 'commentCount',
+    AVG_RATING = 'avgRating',
 }
 
 const ratingOptions = [
     ERatingField.NAME,
-    ERatingField.NOR,
-    ERatingField.AVG_RARING,
+    ERatingField.COMMENT_COUNT,
+    ERatingField.AVG_RATING,
     ERatingField.PRICE
 ]
 

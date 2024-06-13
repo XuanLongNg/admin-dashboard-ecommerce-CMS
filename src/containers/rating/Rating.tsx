@@ -11,6 +11,8 @@ import {ESort} from "@/common/enums/sort.enum";
 import {RatingStyle} from "@/containers/rating/rating.style";
 import {transformDataInteract} from "@/containers/app/utils/transform-data.utils";
 import {IReviews} from "@/containers/app/interfaces/app.interface";
+import axios from "axios";
+import {keepPreviousData, useQuery} from "@tanstack/react-query";
 
 
 ChartJS.register(
@@ -79,17 +81,17 @@ export const options3 = {
 
 const mockLabels = averageRatingMock.map((data) => data.name);
 const mockData1 = {
-    labels: mockLabels,
+    labels: [] as any,
     datasets: [
         {
             label: 'Điểm đánh giá trung bình',
-            data: averageRatingMock.map((data) => data.average_raring),
+            data: [] as any,
             borderColor: 'rgb(255, 99, 132)',
             backgroundColor: 'rgba(255, 99, 132, 0.5)',
         },
         {
             label: 'Số lượng đánh giá',
-            data: averageRatingMock.map((data) => data.number_or_review),
+            data: [] as any,
             borderColor: 'rgb(53, 162, 235)',
             backgroundColor: 'rgba(53, 162, 235, 0.5)',
         },
@@ -97,22 +99,22 @@ const mockData1 = {
 };
 
 const mockData2 = {
-    labels: ratingByDateMock.map((data) => data.review_date),
+    labels: [] as any,
     datasets: [
         {
             label: 'Số lượt đánh giá trong 1 ngày',
-            data: ratingByDateMock.map((data) => data.review_count),
+            data: [] as any,
             borderColor: 'rgb(255, 99, 132)',
             backgroundColor: 'rgba(255, 99, 132, 0.5)',
         },
     ],
 };
 const mockData3 = {
-    labels: userCommentMock.map((data) => data.user_id),
+    labels: [] as any,
     datasets: [
         {
             label: 'Số lượng đánh giá từng người dùng',
-            data: userCommentMock.map((data) => data.comment_count),
+            data: [] as any,
             borderColor: 'rgb(53, 162, 235)',
             backgroundColor: 'rgba(53, 162, 235, 0.5)',
         },
@@ -124,130 +126,107 @@ const selectOptions = ratingOptions.map((data) => ({
     label: data,
 }))
 
+interface ITop10Review {
+    id: number,
+    commentCount: number
+    avgRating: number
+}
+
+interface IAverageRatings {
+    name: string
+    totalRating: number
+    count: number
+    id: number
+    averageRating: number
+    price: number
+}
+
+interface IViewPer {
+    date: string
+    count: number
+}
+
+interface IDataRating {
+    data: {
+        top10Review: ITop10Review[],
+        averageRatings: IAverageRatings[],
+        viewPerDay: IViewPer[],
+    }
+    meta: {
+        orderBy: string,
+        order: string,
+        size: string,
+        filterBy: string,
+    }
+}
+
 export const RatingChart = () => {
     const [data, setData] = useState(mockData1);
     const [data2, setData2] = useState(mockData2);
     const [data3, setData3] = useState(mockData3);
-
     const [filterOption, setFilterOption] = useState<EFilterOption>(EFilterOption.DEFAULT)
     const [record, setRecord] = useState(averageRatingMock.length);
     const [maxRecord, setMaxRecord] = useState(averageRatingMock.length);
     const [selectOption, setSelectOption] = useState<ERatingField>(ERatingField.NAME);
-    const [sortOption, setSortOption] = useState<ESort>(ESort.ACS);
+    const [sortOption, setSortOption] = useState<ESort>(ESort.ASC);
 
+    const {data: allData, isLoading} = useQuery({
+        queryKey: ['rating'], queryFn: async () => {
+            const {data} = await axios.get<IDataRating>('http://localhost:4000/api/dashboard/rating-summary', {
+                params: {
+                    size: record,
+                    order: sortOption,
+                    orderBy: selectOption,
+                    filterBy: filterOption,
+                }
+            })
+            return data
+        },
+        placeholderData: keepPreviousData
+    })
 
     useEffect(() => {
-        const mock1 = [...averageRatingMock.sort()];
-        const mock2 = [...reviewFullMock.sort()];
-        const mock3 = [...userCommentMock.sort()];
-
-        const length1 = mock1.length;
-        const length2 = mock2.length;
-        const length3 = mock3.length;
-
-        setMaxRecord(length1);
-        let dataTmp1;
-        let dataTmp2;
-
-        switch (selectOption) {
-            case ERatingField.NAME:
-                dataTmp1 = mock1.sort((a, b) => {
-                    if (sortOption === ESort.ACS)
-                        return a.name.localeCompare(b.name);
-                    return b.name.localeCompare(a.name);
-                })
-                dataTmp2 = mock3.sort((a, b) => {
-                    if (sortOption === ESort.ACS)
-                        return a.user_id - b.user_id;
-                    return b.user_id - a.user_id;
-                })
-                break;
-            case ERatingField.PRICE:
-                dataTmp1 = mock1.sort((a, b) => {
-                    if (sortOption === ESort.ACS)
-                        return a.price - b.price
-                    return b.price - a.price
-                })
-                dataTmp2 = mock3.sort((a, b) => {
-                    if (sortOption === ESort.ACS)
-                        return a.user_id - b.user_id;
-                    return b.user_id - a.user_id;
-                })
-                break;
-            case ERatingField.NOR:
-                dataTmp1 = mock1.sort((a, b) => {
-                    if (sortOption === ESort.ACS)
-                        return a.number_or_review - b.number_or_review
-                    return b.number_or_review - a.number_or_review
-                })
-                dataTmp2 = mock3.sort((a, b) => {
-                    if (sortOption === ESort.ACS)
-                        return a.comment_count - b.comment_count;
-                    return b.comment_count - a.comment_count;
-                })
-                break;
-            case ERatingField.AVG_RARING:
-                dataTmp1 = mock1.sort((a, b) => {
-                    if (sortOption === ESort.ACS)
-                        return a.average_raring - b.average_raring
-                    return b.average_raring - a.average_raring
-                })
-                dataTmp2 = mock3.sort((a, b) => {
-                    if (sortOption === ESort.ACS)
-                        return a.comment_count - b.comment_count;
-                    return b.comment_count - a.comment_count;
-                })
-                break;
-            default:
-                dataTmp1 = mock1.sort()
-                dataTmp2 = mock3.sort()
-                break;
-        }
-
-        const dataProcessed1 = dataTmp1.slice(record > length1 ? 0 : length1 - record, length1);
-        const dataProcessed2 = transformDataInteract(mock2 as IReviews[], filterOption);
-        const dataProcessed3 = dataTmp2.slice(record > length3 ? 0 : length3 - record, length3)
-
+        if (!allData) return;
         setData({
-            labels: dataProcessed1.map((data) => data.name),
+            labels: allData.data.averageRatings.map((data) => data.name),
             datasets: [
                 {
                     label: 'Điểm đánh giá trung bình',
-                    data: dataProcessed1.map((data) => data.average_raring),
+                    data: allData.data.averageRatings.map((data) => data.averageRating),
                     borderColor: 'rgb(255, 99, 132)',
                     backgroundColor: 'rgba(255, 99, 132, 0.5)',
                 },
                 {
                     label: 'Số lượng đánh giá',
-                    data: dataProcessed1.map((data) => data.number_or_review),
+                    data: allData.data.averageRatings.map((data) => data.count),
                     borderColor: 'rgb(53, 162, 235)',
                     backgroundColor: 'rgba(53, 162, 235, 0.5)',
                 },
             ],
         })
         setData2({
-            labels: dataProcessed2.map((data) => data.created_at),
+            labels: allData.data.viewPerDay.map((data) => data.date),
             datasets: [
                 {
                     label: 'Số lượt đánh giá trong 1 ngày',
-                    data: dataProcessed2.map((data) => data.total),
+                    data: allData.data.viewPerDay.map((data) => data.count),
                     borderColor: 'rgb(255, 99, 132)',
                     backgroundColor: 'rgba(255, 99, 132, 0.5)',
                 },
             ],
         })
         setData3({
-            labels: dataProcessed3.map((data) => data.user_id),
+            labels: allData.data.top10Review.map((data) => data.id),
             datasets: [
                 {
                     label: 'Số lượng đánh giá từng người dùng',
-                    data: dataProcessed3.map((data) => data.comment_count),
+                    data: allData.data.top10Review.map((data) => data.commentCount),
                     borderColor: 'rgb(53, 162, 235)',
                     backgroundColor: 'rgba(53, 162, 235, 0.5)',
                 },
             ],
         })
-    }, [record, filterOption, selectOption, sortOption])
+    }, [allData, record, filterOption, selectOption, sortOption]);
 
     const handleSelect = (value: any) => {
         setSelectOption(value)
@@ -272,17 +251,24 @@ export const RatingChart = () => {
                 setFilterOption={setFilterOption}
                 hasSelectOption={true}
             />
-            <div className={"chart-1"}>
+            {!allData && (<div className={'loading d-flex justify-content-center align-items-center'}>Loading</div>)}
+
+            {allData && (<div className={"chart-1"}>
                 <Bar options={options1} data={data}/>
-            </div>
-            <div className={"chart-2 d-flex flex-row"}>
-                <div className={'chart-line'}>
-                    <Line options={options2} data={data2}/>
+            </div>)}
+
+            {allData && (
+                <div className={"chart-2 d-flex flex-row"}>
+                    <div className={'chart-line'}>
+                        <Line options={options2} data={data2}/>
+                    </div>
+                    <div className={'chart-bar'}>
+                        <Bar options={options3} data={data3}/>;
+                    </div>
                 </div>
-                <div className={'chart-bar'}>
-                    <Bar options={options3} data={data3}/>;
-                </div>
-            </div>
+            )}
+
+
         </div>
     </RatingStyle>
 }

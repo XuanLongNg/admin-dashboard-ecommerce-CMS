@@ -6,6 +6,14 @@ export const OrderStyle = styled('div')`
     .left-component {
         min-width: 100%;
 
+        .loading {
+            margin-top: 10px;
+            background-color: white;
+            border-radius: 10px;
+            width: 100%;
+            height: 60vh;
+        }
+
         .chart-1 {
             width: 70%;
             margin-top: 10px;

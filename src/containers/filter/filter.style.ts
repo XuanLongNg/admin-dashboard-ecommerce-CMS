@@ -13,4 +13,10 @@ export const FilterStyle = styled('div')`
 
     }
 
+    .btn-export {
+        background-color: #06a206;
+        padding: 8px;
+        border-radius: 10px;
+        color: white;
+    }
 `;

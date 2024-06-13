@@ -7,6 +7,8 @@ import {EFilterOption, EProductField, productOptions} from "@/containers/app/enu
 import {ProductStyle} from "@/containers/product/product.style";
 import {ESort} from "@/common/enums/sort.enum";
 import {PointCart} from "@/containers/point-card/PointCart";
+import axios from "axios";
+import {keepPreviousData, useQuery, useQueryClient} from "@tanstack/react-query";
 
 
 ChartJS.register(
@@ -64,19 +66,18 @@ export const options2 = {
     },
 };
 
-const mockLabels = productMock.map((data) => data.name);
 const mockData1 = {
-    labels: mockLabels,
+    labels: [] as any,
     datasets: [
         {
             label: 'Số lượng nhập về',
-            data: productMock.map((data) => data.quantity),
+            data: [] as any,
             borderColor: 'rgb(255, 99, 132)',
             backgroundColor: 'rgba(255, 99, 132, 0.5)',
         },
         {
             label: 'Số lượng bán ra',
-            data: productMock.map((data) => data.output),
+            data: [] as any,
             borderColor: 'rgb(53, 162, 235)',
             backgroundColor: 'rgba(53, 162, 235, 0.5)',
         },
@@ -84,18 +85,18 @@ const mockData1 = {
 };
 
 const mockData2 = {
-    labels: mockLabels,
+    labels: [] as any,
     datasets: [
         {
             label: 'Lượt xem',
-            data: productMock.map((data) => data.views),
+            data: [] as any,
             borderColor: 'rgb(255, 99, 132)',
             backgroundColor: 'rgba(255, 99, 132, 0.5)',
             yAxisID: 'y',
         },
         {
             label: 'Giá cả',
-            data: productMock.map((data) => data.price),
+            data: [] as any,
             borderColor: 'rgb(53, 162, 235)',
             backgroundColor: 'rgba(53, 162, 235, 0.5)',
             yAxisID: 'y1',
@@ -108,7 +109,35 @@ const selectOptions = productOptions.map((data) => ({
     label: data,
 }))
 
+interface IIOProduct {
+    label: string
+    input: number
+    output: number
+}
+
+interface IViewProduct {
+    label: string
+    views: number
+    price: number
+}
+
+interface IDataProduct {
+    data: {
+        IOProduct: IIOProduct[],
+        ViewProduct: IViewProduct[],
+        totalProduct: number,
+        totalProductSold: number
+    }
+    meta: {
+        orderBy: string,
+        order: string,
+        size: string,
+    }
+}
+
+
 export const ProductChart = () => {
+
     const [data, setData] = useState(mockData1);
     const [data2, setData2] = useState(mockData2);
 
@@ -116,91 +145,64 @@ export const ProductChart = () => {
     const [record, setRecord] = useState(productMock.length);
     const [maxRecord, setMaxRecord] = useState(productMock.length);
     const [selectOption, setSelectOption] = useState<EProductField>(EProductField.NAME);
-    const [sortOption, setSortOption] = useState<ESort>(ESort.ACS);
-    const [totalProduct, setTotalProduct] = useState<number>(productMock.reduce((total: number, curr) => {
-        return total + curr.quantity;
-    }, 0));
+    const [sortOption, setSortOption] = useState<ESort>(ESort.ASC);
+    const [totalProduct, setTotalProduct] = useState<number>(0);
+    const [totalProductSold, setTotalProductSold] = useState<number>(0);
 
-
+    const {data: allData, isLoading} = useQuery({
+        queryKey: ['product'], queryFn: async () => {
+            const {data} = await axios.get<IDataProduct>('http://localhost:4000/api/dashboard/product-summary', {
+                params: {
+                    size: record,
+                    order: sortOption,
+                    orderBy: selectOption,
+                }
+            })
+            return data;
+        },
+        placeholderData: keepPreviousData
+    })
     useEffect(() => {
-        const mock = [...productMock.sort()];
-        const length = mock.length;
-        setMaxRecord(length);
-        let dataTmp;
-
-        switch (selectOption) {
-            case EProductField.NAME:
-                dataTmp = mock.sort((a, b) => {
-                    if (sortOption === ESort.ACS)
-                        return a.name.localeCompare(b.name);
-                    return b.name.localeCompare(a.name);
-                })
-                break;
-            case EProductField.PRICE:
-                dataTmp = mock.sort((a, b) => {
-                    if (sortOption === ESort.ACS)
-                        return a.price - b.price
-                    return b.price - a.price
-                })
-                break;
-            case EProductField.QUANTITY:
-                dataTmp = mock.sort((a, b) => {
-                    if (sortOption === ESort.ACS)
-                        return a.quantity - b.quantity
-                    return b.quantity - a.quantity
-                })
-                break;
-            case EProductField.VIEWS:
-                dataTmp = mock.sort((a, b) => {
-                    if (sortOption === ESort.ACS)
-                        return a.views - b.views
-                    return b.views - a.views
-                })
-                break;
-            default:
-                dataTmp = mock.sort()
-                break;
-        }
-
-        let dataProcessed = dataTmp.slice(record > length ? 0 : length - record, length);
-
+        if (!allData) return;
         setData({
-            labels: dataProcessed.map((data) => data.name),
+            labels: allData.data.IOProduct.map((data) => data.label),
             datasets: [
                 {
                     label: 'Số lượng nhập về',
-                    data: dataProcessed.map((data) => data.quantity),
+                    data: allData.data.IOProduct.map((data) => data.input),
                     borderColor: 'rgb(255, 99, 132)',
                     backgroundColor: 'rgba(255, 99, 132, 0.5)',
                 },
                 {
                     label: 'Số lượng bán ra',
-                    data: dataProcessed.map((data) => data.output),
+                    data: allData.data.IOProduct.map((data) => data.output),
                     borderColor: 'rgb(53, 162, 235)',
                     backgroundColor: 'rgba(53, 162, 235, 0.5)',
                 },
             ],
         })
         setData2({
-            labels: dataProcessed.map((data) => data.name),
+            labels: allData.data.ViewProduct.map((data) => data.label),
             datasets: [
                 {
                     label: 'Lượt xem',
-                    data: dataProcessed.map((data) => data.views),
+                    data: allData.data.ViewProduct.map((data) => data.views),
                     borderColor: 'rgb(255, 99, 132)',
                     backgroundColor: 'rgba(255, 99, 132, 0.5)',
                     yAxisID: 'y',
                 },
                 {
                     label: 'Giá cả',
-                    data: dataProcessed.map((data) => data.price),
+                    data: allData.data.ViewProduct.map((data) => data.price),
                     borderColor: 'rgb(53, 162, 235)',
                     backgroundColor: 'rgba(53, 162, 235, 0.5)',
                     yAxisID: 'y1',
                 },
             ],
         })
-    }, [record, filterOption, selectOption, sortOption])
+        setTotalProduct(allData.data.totalProduct);
+        setTotalProductSold(allData.data.totalProductSold);
+    }, [allData, record, filterOption, selectOption, sortOption])
 
     const handleSelect = (value: any) => {
         setSelectOption(value)
@@ -224,16 +226,20 @@ export const ProductChart = () => {
                 sortSelect={sortOption}
                 hasSelectOption={true}
             />
-            <div className={'d-flex flex-row'}>
-                <PointCart title={'Tổng số lượng hàng trong kho'} content={totalProduct}/>
-                <PointCart title={'Tổng số lượng hàng đã bán'} content={totalProduct}/>
-            </div>
-            <div className={"chart-1"}>
-                <Bar options={options1} data={data}/>
-            </div>
-            <div className={"chart-2"}>
-                <Bar options={options2} data={data2}/>
-            </div>
+            {!allData && (<div className={'loading d-flex justify-content-center align-items-center'}>Loading</div>)}
+
+            {allData && <div>
+                <div className={'d-flex flex-row'}>
+                    <PointCart title={'Tổng số lượng hàng trong kho'} content={totalProduct}/>
+                    <PointCart title={'Tổng số lượng hàng đã bán'} content={totalProductSold}/>
+                </div>
+                <div className={"chart-1"}>
+                    <Bar options={options1} data={data}/>
+                </div>
+                <div className={"chart-2"}>
+                    <Bar options={options2} data={data2}/>
+                </div>
+            </div>}
         </div>
     </ProductStyle>
 }
